@@ -143,6 +143,7 @@ df_q['upper_es_q'] = upper_es_q
 df_q['lower_mean_excess'] = lower_mean_excess
 df_q['lower_max_excess'] = lower_max_excess
 df_q['lower_es_q'] = lower_es_q
+df_q['var'] = var_q  # Using last computed var_q for simplicity
 
 # -------------------------------
 # TARGET VARIABLE
@@ -158,7 +159,7 @@ evt_features = [
     'lower_mean_excess', 'lower_max_excess', 'lower_es_q',
     'abs_exceed_ratio', 'upper_exceed_ratio', 'lower_exceed_ratio',
     'abs_extreme_score_mean', 'upper_extreme_score_mean', 'lower_extreme_score_mean',
-    'abs_RET_max', 'abs_RET_mean'
+    'abs_RET_max', 'abs_RET_mean', 'var'
 ]
 stock_features = ['RET_std', 'RET_mean']
 features = evt_features + stock_features
@@ -215,8 +216,8 @@ df_q['pred_prob'] = np.nan
 df_q.loc[idx_test, 'pred_prob'] = y_prob
 df_q.loc[idx_train, 'pred_prob'] = clf.predict_proba(X_train_s)[:,1]
 
-df_q.to_csv("updated_gpd_for_each_quarter.csv", index=False)
-print("Saved quarterly features + preds to 'updated_gpd_for_each_quarter.csv'")
+df_q.to_csv("logistic_regression_data.csv", index=False)
+print("Saved quarterly features + preds to 'logistic_regression_data.csv'")
 
 decline_threshold = 0.5  
 

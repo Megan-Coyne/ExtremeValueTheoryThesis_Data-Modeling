@@ -69,96 +69,128 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
-# Display MLE Table
-fig, ax = plt.subplots(figsize=(8, 2))
-ax.axis('tight')
-ax.axis('off')
+# # Display MLE Table
+# fig, ax = plt.subplots(figsize=(8, 2))
+# ax.axis('tight')
+# ax.axis('off')
 
-column_labels = ["Dataset/Year", "Shape (ξ)", "Scale (β)", "Threshold (u)"]
-table = ax.table(cellText=fit_results,
-                 colLabels=column_labels,
-                 loc='center', cellLoc='center')
+# column_labels = ["Dataset/Year", "Shape (ξ)", "Scale (β)", "Threshold (u)"]
+# table = ax.table(cellText=fit_results,
+#                  colLabels=column_labels,
+#                  loc='center', cellLoc='center')
 
-table.auto_set_font_size(False)
-table.set_fontsize(12)
-table.scale(1.2, 1.2)
-plt.title("Maximum Likelihood Estimates for GPD Fits (POT)", pad=20)
-plt.tight_layout()
-plt.show()
+# table.auto_set_font_size(False)
+# table.set_fontsize(12)
+# table.scale(1.2, 1.2)
+# plt.title("Maximum Likelihood Estimates for GPD Fits (POT)", pad=20)
+# plt.tight_layout()
+# plt.show()
 
-from scipy.stats import kstest
+# from scipy.stats import kstest
 
-threshold, exceedances, shape, scale = pot_gpd_fit(overall_data)
-print(f"Overall GPD Fit (POT > {threshold:.4f}) - Shape (ξ): {shape:.4f}, Scale (β): {scale:.4f}")
+# threshold, exceedances, shape, scale = pot_gpd_fit(overall_data)
+# print(f"Overall GPD Fit (POT > {threshold:.4f}) - Shape (ξ): {shape:.4f}, Scale (β): {scale:.4f}")
 
-# KS-test
-D, p_value = kstest(exceedances, 'genpareto', args=(shape, 0, scale))
-print(f"KS-test D-statistic: {D:.4f}, p-value: {p_value:.4f}")
+# # KS-test
+# D, p_value = kstest(exceedances, 'genpareto', args=(shape, 0, scale))
+# print(f"KS-test D-statistic: {D:.4f}, p-value: {p_value:.4f}")
 
-# Bootstrap for confidence intervals
-n_bootstrap = 1000
-boot_shapes = []
-boot_scales = []
-for _ in range(n_bootstrap):
-    sample = np.random.choice(exceedances, size=len(exceedances), replace=True)
-    shape_b, loc_b, scale_b = genpareto.fit(sample, floc=0)
-    boot_shapes.append(shape_b)
-    boot_scales.append(scale_b)
+# # Bootstrap for confidence intervals
+# n_bootstrap = 1000
+# boot_shapes = []
+# boot_scales = []
+# for _ in range(n_bootstrap):
+#     sample = np.random.choice(exceedances, size=len(exceedances), replace=True)
+#     shape_b, loc_b, scale_b = genpareto.fit(sample, floc=0)
+#     boot_shapes.append(shape_b)
+#     boot_scales.append(scale_b)
 
-boot_shapes = np.array(boot_shapes)
-boot_scales = np.array(boot_scales)
+# boot_shapes = np.array(boot_shapes)
+# boot_scales = np.array(boot_scales)
 
-# Plot histogram, fitted PDF, and confidence intervals
-x = np.linspace(exceedances.min(), exceedances.max(), 1000)
-pdf = genpareto.pdf(x, shape, loc=0, scale=scale)
+# # Plot histogram, fitted PDF, and confidence intervals
+# x = np.linspace(exceedances.min(), exceedances.max(), 1000)
+# pdf = genpareto.pdf(x, shape, loc=0, scale=scale)
 
-boot_pdfs = np.array([genpareto.pdf(x, s, loc=0, scale=sc) for s, sc in zip(boot_shapes, boot_scales)])
-ci_lower = np.percentile(boot_pdfs, 2.5, axis=0)
-ci_upper = np.percentile(boot_pdfs, 97.5, axis=0)
+# boot_pdfs = np.array([genpareto.pdf(x, s, loc=0, scale=sc) for s, sc in zip(boot_shapes, boot_scales)])
+# ci_lower = np.percentile(boot_pdfs, 2.5, axis=0)
+# ci_upper = np.percentile(boot_pdfs, 97.5, axis=0)
 
-plt.figure(figsize=(10,6))
-plt.hist(exceedances, bins=50, density=True, alpha=0.5, color='skyblue', label='Exceedances')
-plt.plot(x, pdf, 'r-', lw=2, label='GPD Fit (POT)')
-plt.fill_between(x, ci_lower, ci_upper, color='red', alpha=0.2, label='95% CI')
-plt.text(0.05, max(pdf)*0.9, f'KS-test p-value: {p_value:.4f}', fontsize=12, color='black')
-plt.xlabel('Exceedances over threshold')
-plt.ylabel('Density')
-plt.title(f'GPD Fit with 95% CI and KS p-value (Threshold={threshold:.4f})')
-plt.legend()
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(10,6))
+# plt.hist(exceedances, bins=50, density=True, alpha=0.5, color='skyblue', label='Exceedances')
+# plt.plot(x, pdf, 'r-', lw=2, label='GPD Fit (POT)')
+# plt.fill_between(x, ci_lower, ci_upper, color='red', alpha=0.2, label='95% CI')
+# plt.text(0.05, max(pdf)*0.9, f'KS-test p-value: {p_value:.4f}', fontsize=12, color='black')
+# plt.xlabel('Exceedances over threshold')
+# plt.ylabel('Density')
+# plt.title(f'GPD Fit with 95% CI and KS p-value (Threshold={threshold:.4f})')
+# plt.legend()
+# plt.tight_layout()
+# plt.show()
 
-# Marshall-Olkin transformation
-alpha = 0.5  # can adjust depending on how heavy you want the tail
-df['RET_MO'] = df['abs_RET'] / (1 - alpha * df['abs_RET'])
-mo_data = df['RET_MO'].dropna()
+# # Marshall-Olkin transformation
+# alpha = 0.5  # can adjust depending on how heavy you want the tail
+# df['RET_MO'] = df['abs_RET'] / (1 - alpha * df['abs_RET'])
+# mo_data = df['RET_MO'].dropna()
 
-# Function for POT + GPD fit (same as before)
-threshold_mo, exceedances_mo, shape_mo, scale_mo = pot_gpd_fit(mo_data, threshold_quantile=0.95)
-print(f"MO GPD Fit (POT > {threshold_mo:.4f}) - Shape (ξ): {shape_mo:.4f}, Scale (β): {scale_mo:.4f}")
+# # Function for POT + GPD fit (same as before)
+# threshold_mo, exceedances_mo, shape_mo, scale_mo = pot_gpd_fit(mo_data, threshold_quantile=0.95)
+# print(f"MO GPD Fit (POT > {threshold_mo:.4f}) - Shape (ξ): {shape_mo:.4f}, Scale (β): {scale_mo:.4f}")
 
-# Plot histogram and GPD fit
-plt.figure(figsize=(10,5))
-plt.hist(exceedances_mo, bins=50, density=True, alpha=0.6, color='lightgreen', label='MO Exceedances')
+# # Plot histogram and GPD fit
+# plt.figure(figsize=(10,5))
+# plt.hist(exceedances_mo, bins=50, density=True, alpha=0.6, color='lightgreen', label='MO Exceedances')
 
-x_mo = np.linspace(exceedances_mo.min(), exceedances_mo.max(), 1000)
-pdf_mo = genpareto.pdf(x_mo, shape_mo, loc=0, scale=scale_mo)
-plt.plot(x_mo, pdf_mo, 'r-', lw=2, label='GPD Fit (MO POT)')
+# x_mo = np.linspace(exceedances_mo.min(), exceedances_mo.max(), 1000)
+# pdf_mo = genpareto.pdf(x_mo, shape_mo, loc=0, scale=scale_mo)
+# plt.plot(x_mo, pdf_mo, 'r-', lw=2, label='GPD Fit (MO POT)')
 
-plt.xlabel('Exceedances over threshold (Marshall-Olkin)')
-plt.ylabel('Density')
-plt.title(f'GPD Fit to MO-Transformed Returns (Threshold={threshold_mo:.4f})')
-plt.legend()
-plt.tight_layout()
-plt.show()
+# plt.xlabel('Exceedances over threshold (Marshall-Olkin)')
+# plt.ylabel('Density')
+# plt.title(f'GPD Fit to MO-Transformed Returns (Threshold={threshold_mo:.4f})')
+# plt.legend()
+# plt.tight_layout()
+# plt.show()
 
-# Compare original log-transformed vs Marshall-Olkin
-plt.figure(figsize=(10,5))
-plt.hist(overall_data, bins=50, density=True, alpha=0.5, color='skyblue', label='Log-transformed')
-plt.hist(mo_data, bins=50, density=True, alpha=0.5, color='lightgreen', label='MO-transformed')
-plt.xlabel('Transformed Returns')
-plt.ylabel('Density')
-plt.title('Comparison: Log vs Marshall-Olkin Transformation')
-plt.legend()
-plt.tight_layout()
-plt.show()
+# # Compare original log-transformed vs Marshall-Olkin
+# plt.figure(figsize=(10,5))
+# plt.hist(overall_data, bins=50, density=True, alpha=0.5, color='skyblue', label='Log-transformed')
+# plt.hist(mo_data, bins=50, density=True, alpha=0.5, color='lightgreen', label='MO-transformed')
+# plt.xlabel('Transformed Returns')
+# plt.ylabel('Density')
+# plt.title('Comparison: Log vs Marshall-Olkin Transformation')
+# plt.legend()
+# plt.tight_layout()
+# plt.show()
+
+import statsmodels.api as sm
+
+# Convert fit_results → DataFrame, drop 'Overall' row if present
+results_df = pd.DataFrame(fit_results, columns=["Year", "Shape", "Scale", "Threshold"])
+results_df = results_df[results_df["Year"] != "Overall"]  # remove overall row
+results_df["Year"] = results_df["Year"].astype(int)
+results_df["Shape"] = results_df["Shape"].astype(float)
+results_df["Scale"] = results_df["Scale"].astype(float)
+results_df["Threshold"] = results_df["Threshold"].astype(float)
+
+# Load economic data
+econ = pd.read_csv("data/ECONOMIC_CONDITIONS_INDEX_DETROIT.csv")
+
+# Convert date → year
+econ["observation_date"] = pd.to_datetime(econ["observation_date"])
+econ["Year"] = econ["observation_date"].dt.year
+
+# Make sure the economic variable is named properly
+# If your variable is just called "value", rename it:
+econ = econ.rename(columns={"DWLAGRIDX": "EconomicIndex"})
+
+# Merge on Year
+merged = results_df.merge(econ[["Year", "EconomicIndex"]], on="Year", how="inner")
+
+# Regression: Economic Index ~ Shape + Scale
+X = merged[["Shape", "Scale"]]
+X = sm.add_constant(X)
+y = merged["EconomicIndex"]
+
+model = sm.OLS(y, X).fit()
+print(model.summary())

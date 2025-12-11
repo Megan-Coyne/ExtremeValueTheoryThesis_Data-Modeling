@@ -103,6 +103,11 @@ df_q['low_volume_ratio'] = (
     .resample('QE').mean().values
 )
 
+df_q['high_volume_ratio'] = (
+    (df.set_index('date')['log_volume'] > df['log_volume'].quantile(0.95))
+    .resample('QE').mean().values
+)
+
 # calculate the fraction of the days in the quarter that exceeded the GPD threshold
 df_q['abs_exceed_ratio'] = df_q['abs_exceed_sum'] / df_q['days_in_quarter']
 df_q['upper_exceed_ratio'] = df_q['upper_exceed_sum'] / df_q['days_in_quarter']
@@ -178,12 +183,12 @@ evt_features = [
     'lower_mean_excess', 'lower_max_excess', 'lower_es_q',
     'abs_exceed_ratio', 'upper_exceed_ratio', 'lower_exceed_ratio',
     'abs_extreme_score_mean', 'upper_extreme_score_mean', 'lower_extreme_score_mean',
-    'abs_RET_max', 'abs_RET_mean', 'upper_var', 'lower_var', 'abs_var'
+    'abs_RET_max', 'abs_RET_mean', 'upper_var', 'lower_var', 'abs_var', ''
 ]
 liquidity_features = [
     'log_volume_mean', 'log_volume_std', 'log_volume_max',
     'rel_spread_mean', 'rel_spread_max',
-    'high_spread_ratio', 'low_volume_ratio'
+    'high_spread_ratio', 'low_volume_ratio', 'high_volume_ratio'
 ]
 stock_features = ['RET_std', 'RET_mean']
 features = evt_features + liquidity_features + stock_features

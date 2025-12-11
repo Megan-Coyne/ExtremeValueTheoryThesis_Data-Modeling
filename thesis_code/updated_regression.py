@@ -39,6 +39,8 @@ df = pd.read_csv("/Users/megancoyne/school/thesis/thesis_code/data/FordStock_201
 df['date'] = pd.to_datetime(df['date'])
 df = df.sort_values('date').reset_index(drop=True)
 df['abs_RET'] = df['RET'].abs()
+df['log_volume'] = np.log1p(df['VOL'])
+df['rel_spread'] = (df['ASK'] - df['BID']) / ((df['ASK'] + df['BID']) / 2)
 
 # determine an end date for the training set, specify that the training set is all of the data up to and including that date
 train_end = pd.to_datetime('2012-12-31')
@@ -81,13 +83,25 @@ df_q = df.set_index('date').resample('QE').agg({
     'lower_exceed': 'sum',
     'abs_extreme_score': 'mean',
     'upper_extreme_score': 'mean',
-    'lower_extreme_score': 'mean'
+    'lower_extreme_score': 'mean',
+    'log_volume': ['mean', 'std', 'max'],
+    'rel_spread': ['mean', 'max']
 })
 df_q.columns = ['_'.join(col).strip() for col in df_q.columns.values]
 df_q = df_q.reset_index().rename(columns={'date': 'quarter_end'})
 
 days_per_q = df.set_index('date').resample('QE').size().values
 df_q['days_in_quarter'] = days_per_q
+
+df_q['high_spread_ratio'] = (
+    (df.set_index('date')['rel_spread'] > df['rel_spread'].quantile(0.95))
+    .resample('QE').mean().values
+)
+
+df_q['low_volume_ratio'] = (
+    (df.set_index('date')['log_volume'] < df['log_volume'].quantile(0.05))
+    .resample('QE').mean().values
+)
 
 # calculate the fraction of the days in the quarter that exceeded the GPD threshold
 df_q['abs_exceed_ratio'] = df_q['abs_exceed_sum'] / df_q['days_in_quarter']
@@ -97,9 +111,9 @@ df_q['lower_exceed_ratio'] = df_q['lower_exceed_sum'] / df_q['days_in_quarter']
 # -------------------------------
 # CALCULATE QUARTERLY EVT METRICS (INCLUDING VAR/ES)
 # -------------------------------
-abs_mean_excess, abs_max_excess, abs_es_q = [], [], []
-upper_mean_excess, upper_max_excess, upper_es_q = [], [], []
-lower_mean_excess, lower_max_excess, lower_es_q = [], [], []
+abs_mean_excess, abs_max_excess, abs_es_q, abs_var = [], [], [], []
+upper_mean_excess, upper_max_excess, upper_es_q, upper_var = [], [], [], []
+lower_mean_excess, lower_max_excess, lower_es_q, lower_var = [], [], [], []
 
 for q, group in df.set_index('date').resample('QE'):
     # ABSOLUTE RETURNS
@@ -109,6 +123,7 @@ for q, group in df.set_index('date').resample('QE'):
     abs_max_excess.append(exceed.max() if len(exceed) > 0 else 0.0)
     xi, sigma, threshold = abs_fit['xi'], abs_fit['sigma'], abs_fit['threshold']
     var_q = threshold + abs_fit['gpd_dist'].ppf(0.99)
+    abs_var.append(var_q)
     es_q = (var_q + (sigma - xi*(var_q - threshold)) / (1 - xi)) if xi < 1 else np.inf
     abs_es_q.append(es_q)
 
@@ -119,6 +134,7 @@ for q, group in df.set_index('date').resample('QE'):
     upper_max_excess.append(exceed.max() if len(exceed) > 0 else 0.0)
     xi, sigma, threshold = upper_fit['xi'], upper_fit['sigma'], upper_fit['threshold']
     var_q = threshold + upper_fit['gpd_dist'].ppf(0.99)
+    upper_var.append(var_q) 
     es_q = (var_q + (sigma - xi*(var_q - threshold)) / (1 - xi)) if xi < 1 else np.inf
     upper_es_q.append(es_q)
 
@@ -129,21 +145,24 @@ for q, group in df.set_index('date').resample('QE'):
     lower_max_excess.append(exceed.max() if len(exceed) > 0 else 0.0)
     xi, sigma, threshold = lower_fit['xi'], lower_fit['sigma'], lower_fit['threshold']
     var_q = threshold + lower_fit['gpd_dist'].ppf(0.99)
+    lower_var.append(var_q)
     es_q = (var_q + (sigma - xi*(var_q - threshold)) / (1 - xi)) if xi < 1 else np.inf
     lower_es_q.append(es_q)
 
 df_q['abs_mean_excess'] = abs_mean_excess
 df_q['abs_max_excess'] = abs_max_excess
 df_q['abs_es_q'] = abs_es_q
+df_q['abs_var'] = abs_var
 
 df_q['upper_mean_excess'] = upper_mean_excess
 df_q['upper_max_excess'] = upper_max_excess
 df_q['upper_es_q'] = upper_es_q
+df_q['upper_var'] = upper_var
 
 df_q['lower_mean_excess'] = lower_mean_excess
 df_q['lower_max_excess'] = lower_max_excess
 df_q['lower_es_q'] = lower_es_q
-df_q['var'] = var_q  # Using last computed var_q for simplicity
+df_q['lower_var'] = lower_var
 
 # -------------------------------
 # TARGET VARIABLE
@@ -159,10 +178,15 @@ evt_features = [
     'lower_mean_excess', 'lower_max_excess', 'lower_es_q',
     'abs_exceed_ratio', 'upper_exceed_ratio', 'lower_exceed_ratio',
     'abs_extreme_score_mean', 'upper_extreme_score_mean', 'lower_extreme_score_mean',
-    'abs_RET_max', 'abs_RET_mean', 'var'
+    'abs_RET_max', 'abs_RET_mean', 'upper_var', 'lower_var', 'abs_var'
+]
+liquidity_features = [
+    'log_volume_mean', 'log_volume_std', 'log_volume_max',
+    'rel_spread_mean', 'rel_spread_max',
+    'high_spread_ratio', 'low_volume_ratio'
 ]
 stock_features = ['RET_std', 'RET_mean']
-features = evt_features + stock_features
+features = evt_features + liquidity_features + stock_features
 
 df_q[features] = df_q[features].fillna(0.0)
 

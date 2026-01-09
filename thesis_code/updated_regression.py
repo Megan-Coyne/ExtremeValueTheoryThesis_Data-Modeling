@@ -183,7 +183,7 @@ evt_features = [
     'lower_mean_excess', 'lower_max_excess', 'lower_es_q',
     'abs_exceed_ratio', 'upper_exceed_ratio', 'lower_exceed_ratio',
     'abs_extreme_score_mean', 'upper_extreme_score_mean', 'lower_extreme_score_mean',
-    'abs_RET_max', 'abs_RET_mean', 'upper_var', 'lower_var', 'abs_var', ''
+    'abs_RET_max', 'abs_RET_mean', 'upper_var', 'lower_var', 'abs_var'
 ]
 liquidity_features = [
     'log_volume_mean', 'log_volume_std', 'log_volume_max',

@@ -1,0 +1,18 @@
+Metric,Value
+ROC_AUC,0.8793103448275862
+Confusion_matrix,"[[20, 9], [0, 2]]"
+
+Feature,Coefficient
+upper_exceed_ratio,-2.828735546791808
+log_volume_mean,1.737204347797952
+rel_spread_mean,-0.38735176885460804
+upper_mean_excess,-0.2056017239213421
+lower_mean_excess,0.11992726263682515
+abs_mean_excess,0.0
+abs_var,0.0
+abs_es_q,0.0
+upper_var,0.0
+upper_es_q,0.0
+lower_var,0.0
+lower_es_q,0.0
+RET_mean,0.0

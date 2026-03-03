@@ -1,3 +1,5 @@
+# THIS ESSENTIALLY CALCULATES "GIVEN THE WORST EVENT/S IN THE QUARTER, WHAT TAIL LOSS SEVERITY WOULD EVT PREDICT BEYOND THAT LEVEL". FIXES THE EXPECTED SHORTFALL PROBLEM
+
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -116,53 +118,76 @@ abs_mean_excess, abs_max_excess, abs_var, abs_es_q = [], [], [], []
 upper_mean_excess, upper_max_excess, upper_var, upper_es_q = [], [], [], []
 lower_mean_excess, lower_max_excess, lower_var, lower_es_q = [], [], [], []
 
+# -------------------------------
+# CALCULATE QUARTERLY EVT METRICS (MEAN EXCESS, MAX, CONDITIONAL ES)
+# -------------------------------
+abs_mean_excess, abs_max_excess, abs_es_q = [], [], []
+upper_mean_excess, upper_max_excess, upper_es_q = [], [], []
+lower_mean_excess, lower_max_excess, lower_es_q = [], [], []
+
 for q, group in df.set_index('date').resample('QE'):
-    # ABSOLUTE
-    exceed = group['abs_RET'] - abs_fit['threshold']
+
+    # ===== ABSOLUTE TAIL =====
+    xi, sigma, threshold = abs_fit['xi'], abs_fit['sigma'], abs_fit['threshold']
+    exceed = group['abs_RET'] - threshold
     exceed = exceed[exceed > 0]
+
     abs_mean_excess.append(exceed.mean() if len(exceed) > 0 else 0.0)
     abs_max_excess.append(exceed.max() if len(exceed) > 0 else 0.0)
-    var_q = abs_fit['threshold'] + abs_fit['gpd_dist'].ppf(0.99)
-    abs_var.append(var_q)
-    xi, sigma, threshold = abs_fit['xi'], abs_fit['sigma'], abs_fit['threshold']
-    es_q = (var_q + (sigma - xi*(var_q - threshold)) / (1 - xi)) if xi < 1 else np.inf
+
+    if len(exceed) > 0 and xi < 1:
+        y_q = exceed.max()   # quarter-specific tail severity
+        es_q = threshold + (y_q + sigma - xi * y_q) / (1 - xi)
+    else:
+        es_q = 0.0
+
     abs_es_q.append(es_q)
 
-    # UPPER
-    exceed = group['RET'] - upper_fit['threshold']
+    # ===== UPPER TAIL =====
+    xi, sigma, threshold = upper_fit['xi'], upper_fit['sigma'], upper_fit['threshold']
+    exceed = group['RET'] - threshold
     exceed = exceed[exceed > 0]
+
     upper_mean_excess.append(exceed.mean() if len(exceed) > 0 else 0.0)
     upper_max_excess.append(exceed.max() if len(exceed) > 0 else 0.0)
-    var_q = upper_fit['threshold'] + upper_fit['gpd_dist'].ppf(0.99)
-    upper_var.append(var_q)
-    xi, sigma, threshold = upper_fit['xi'], upper_fit['sigma'], upper_fit['threshold']
-    es_q = (var_q + (sigma - xi*(var_q - threshold)) / (1 - xi)) if xi < 1 else np.inf
+
+    if len(exceed) > 0 and xi < 1:
+        y_q = exceed.max()
+        es_q = threshold + (y_q + sigma - xi * y_q) / (1 - xi)
+    else:
+        es_q = 0.0
+
     upper_es_q.append(es_q)
 
-    # LOWER
-    exceed = (-group['RET']) - lower_fit['threshold']
+    # ===== LOWER TAIL =====
+    xi, sigma, threshold = lower_fit['xi'], lower_fit['sigma'], lower_fit['threshold']
+    exceed = (-group['RET']) - threshold
     exceed = exceed[exceed > 0]
+
     lower_mean_excess.append(exceed.mean() if len(exceed) > 0 else 0.0)
     lower_max_excess.append(exceed.max() if len(exceed) > 0 else 0.0)
-    var_q = lower_fit['threshold'] + lower_fit['gpd_dist'].ppf(0.99)
-    lower_var.append(var_q)
-    xi, sigma, threshold = lower_fit['xi'], lower_fit['sigma'], lower_fit['threshold']
-    es_q = (var_q + (sigma - xi*(var_q - threshold)) / (1 - xi)) if xi < 1 else np.inf
+
+    if len(exceed) > 0 and xi < 1:
+        y_q = exceed.max()
+        es_q = threshold + (y_q + sigma - xi * y_q) / (1 - xi)
+    else:
+        es_q = 0.0
+
     lower_es_q.append(es_q)
 
 df_q['abs_mean_excess'] = abs_mean_excess
 df_q['abs_max_excess'] = abs_max_excess
-df_q['abs_var'] = abs_var
+# df_q['abs_var'] = abs_var
 df_q['abs_es_q'] = abs_es_q
 
 df_q['upper_mean_excess'] = upper_mean_excess
 df_q['upper_max_excess'] = upper_max_excess
-df_q['upper_var'] = upper_var
+# df_q['upper_var'] = upper_var
 df_q['upper_es_q'] = upper_es_q
 
 df_q['lower_mean_excess'] = lower_mean_excess
 df_q['lower_max_excess'] = lower_max_excess
-df_q['lower_var'] = lower_var
+# df_q['lower_var'] = lower_var
 df_q['lower_es_q'] = lower_es_q
 
 # -------------------------------
@@ -194,8 +219,8 @@ df_q['municipal_decline'] = (df_q['quarter_end'] >= pd.to_datetime('2013-07-01')
 
 features = [
     # EVT 
-    'abs_exceed_ratio',
-    'abs_mean_excess',
+    # 'abs_exceed_ratio',
+    # 'abs_mean_excess',
     'abs_es_q',
 
     # 'lower_mean_excess',
@@ -322,3 +347,4 @@ output_path = "quarterly_evt_metrics_and_decline_probabilities_ford.csv"
 df_q_out.to_csv(output_path, index=False)
 
 print(f"\nSaved quarterly metrics and decline probabilities to:\n{output_path}")
+

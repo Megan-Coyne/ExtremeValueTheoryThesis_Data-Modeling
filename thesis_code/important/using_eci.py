@@ -1,3 +1,5 @@
+# ASSIGNS THE 0S AND 1S BASED ON THE ECONOMIC CONDITIONS INDEX
+
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -191,7 +193,25 @@ df_q['lower_es_q'] = lower_es_q
 # -------------------------------
 # TARGET VARIABLE
 # -------------------------------
-df_q['municipal_decline'] = (df_q['quarter_end'] >= pd.to_datetime('2013-07-01')).astype(int)
+decline_data = pd.read_csv("data/ECONOMIC_CONDITIONS_INDEX_DETROIT.csv")
+decline_data['date'] = pd.to_datetime(decline_data['observation_date'])
+decline_data["quarter"] = decline_data["date"].dt.to_period("Q")
+df_q["quarter"] = df_q["quarter_end"].dt.to_period("Q")
+index_col = "DWLAGRIDX"
+
+decline_q = (
+    decline_data
+    .groupby("quarter")[index_col]
+    .mean()
+    .reset_index(name="econ_index_mean")
+)
+
+# Merge onto municipal quarterly data
+df_q = df_q.merge(decline_q, on="quarter", how="left")
+
+# Municipal decline assignment
+# 1 = decline, 0 = no decline
+df_q["municipal_decline"] = (df_q["econ_index_mean"] < 0).astype(int)
 
 # -------------------------------
 # FINAL FEATURE SET
@@ -345,4 +365,3 @@ output_path = "quarterly_evt_metrics_and_decline_probabilities_ford.csv"
 df_q_out.to_csv(output_path, index=False)
 
 print(f"\nSaved quarterly metrics and decline probabilities to:\n{output_path}")
-
